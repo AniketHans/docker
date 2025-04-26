@@ -65,3 +65,151 @@
     1. -e is used to define some env variables in a container.
 12. `docker run --name <custom-name> -d <image>`
     1. This can be used to give a custom name to the container built from the image.
+
+### Docker Image Layers
+
+1. Any docker image is made up of different layers.  
+   ![Docker layers](./resources/images/docker-layers.png)
+2. There is a Base layer in a docker image.
+   1. This generally a small size linux based image like debain, alpine etc
+   2. The other layers are available above this layer.
+3. We can have multiple layers
+4. Container layer:
+   1. When we create a new container, a new writable layer (called container layer) is added on top of underlying layers.
+5. All layers, except the container layer, are immutable/read only in nature.
+6. Now, if we are working with different versions of same image, say img:v1 and img:v2, then there may be some layers which are common. If we have setup one version of the image, say img:v1 and if we try to setup the other version say img:v2, then while setup, for some layers, we get layer already exists.
+
+### Port Binding
+
+1. Whenever a new container is created, by default all containers have some port binded to them. Also, all docker containers have a separate file system.
+2. The default port shown by the containers are not the actual ports of the host machine. Lets say, you start 2 containers from mysql image. If you do `docker ps`, it will show port 3306 assigned to both the containers. These are actually the container ports not the host machine ports.
+3. We can maually bind the host machine ports to that of container. These are done so if the request comes on that port of the host machine, it will be redirected to the container port.
+4. `docker run -p<hostPort>:<containerPort> image_name`
+   1. Eg: docker run -p8080:3306 mysql
+5. If one of the host port is already in use or binded to some docker container, same port cannot be used by the other container until the port is released.
+
+### Troubleshoot commands
+
+1. `docker logs <container-id>`
+   1. Used to access the logs of any container by its id or name.
+2. `docker exec -it <container-id/name> /bin/bash`
+   1. It is used to execute additional commands on an existingly running container
+   2. We can exit from the interactive mode of the container by typing `exit`
+
+### Container vs VM
+
+1. On any machine, we have the following layers:  
+   ![OS Layers](./resources/images/os-layers.png)
+2. Docker container
+   1. Docker uses the host machine kernel and virtualizes the application layer.
+   2. Docker has less overhead. Thus, it is light weight.
+   3. Docker was initially build for Linux based systems. The majority docker images are linux based images.
+   4. Docker desktop adds a lightweight hypervisor layer to a system which internally uses a lightweight linux distribution which helps in running the containers in non linux based syatems. In other words, docker desktop contains a small linux based VM which helps us run a container.
+   5. Docker is prefered for running on linux based machines for production env.
+3. VM
+   1. It vistualizes the host kernel and virtual machine.
+   2. VMs are compatible with all underlying OS's because VMs virtualies the host kernel thus it does not matter on which machine we are bringing our VM as it will use its own kernel.
+
+### Docker Network
+
+1. Docker has the ability create some isolated networks inside which if we set up 2 containers then these containers will be able to interact with each other without needing any kind of port or localhost or anything.
+2. We need to create a new docker network if we want some container to directly interact with each other.
+3. `docker network ls`
+   1. This lists all the docker networks available in your system.
+   2. Each network has its individual name and id.
+4. `docker network create <networkName>`
+   1. This will create a new network
+5. After creating a new network, we need to run containers inside the network so they can interact with each other.
+6. `docker run --network <networkName> -d <image>`
+   1. This will create the container in the following network
+7. `docker network rm <network-name>`
+   1. This command is used to delete a network
+
+### Example
+
+1. Running the docker container for mongo
+   1. `docker run -p27017:27017 --name mongo --network mongo-net -e MONGO_INIT_ROOT_USERNAME=admin -e MONGO_INIT_ROOT_PASSWORD=qwerty mongo`
+      1. Here we have done port binding, naming of the container, network given, set some env variables for run the container from mongo image
+
+### Docker compose
+
+1. Sometimes we need to run multiple containers of different service to make sure our system works as expected.
+2. If we try to run the containers individually through the docker commands then we might make some errors.
+3. We can convert all the docker commands in a single file. This file has a `.yaml` extension.
+4. Instead of running the containers through terminal, we run them from the docker file.
+5. Note: yaml stands for "Yet Another Markup Language"
+6. Running containers through a file gives us the following benefits:
+   1. Docker commands are in structured format in a docker file.
+   2. Edits in the file and again running the containers is easy.
+7. The yaml file will run with the help of docker compose.
+8. Docker compose is a tool for defining and running multi-container applications.
+
+### Writing the docker compose:
+
+1. Consider the following docker command
+   1. `docker run -p27017:27017 --name mongo --network mongo-net -e MONGO_INIT_ROOT_USERNAME=admin -e MONGO_INIT_ROOT_PASSWORD=qwerty mongo-new`
+2. Let name the file as `compose.yaml`. Note: Indentation is important in yaml file.
+3. In compose.yaml,
+
+   ```yaml
+   version: "3.8"
+
+   services:
+     mongo-new:
+       image: mongo
+       ports:
+         - 27017:27017
+       environment:
+         MONGO_INIT_ROOT_USERNAME: admin
+         MONGO_INIT_ROOT_PASSWORD: qwerty
+   ```
+
+4. Here,
+   1. in the above yaml file, at the top we define the docker compose version. We can skip this as well
+   2. All the containers in the file are defined under services.
+5. Docker compose commands:
+   1. `docker compose -f filename.yaml up -d`
+      1. This command will start and run the containers defined in the yaml file in detach mode.
+   2. `docker compose -f filename.yaml down`
+      1. This command will remove the container created from the file.
+6. In yaml file, we dont define the network. This is because all the containers written in the yaml file are considered to be belonging to same network.
+7. By default, the docker compose will create a new network and then start the containers defined in the yaml file in that network. Hence, all containers will belong to the same network and interact with each other flawlessly.
+
+### Dockerizing own applications
+
+1. Docker file is used to convert our application to docker image.
+2. Docker file is a blueprint on how to build our docker image and containers.
+3. Docker file contains set of instructions that are run and turn our application into docker image.
+4. Important docker file instructions
+   1. FROM:
+      1. Every docker image that we want to create is based on a base image.
+      2. `FROM baseImage`
+      3. baseImage can be considered as basic setup and dependencies needed for our application to run
+      4. baseImage add an additional layer to our image. baseImage can also have its own baseImage thus adding more layers to our image.
+      5. Hence, baseImage adds layers to our image.
+   2. WORKDIR:
+      1. We define our work directory with this command or the path in the image where files will be copied and commands will be executed.
+      2. The further instructions in docker file will be executed in this directory.
+   3. COPY:
+      1. Copying files and data from the host machine to the image.
+      2. We first define file path from host machine and then the path in the image where we want to put the data.
+   4. RUN:
+      1. This is used to run some instructions in our docker image/container
+      2. The docker file can have multiple RUN commands.
+   5. CMD:
+      1. We can only have a single CMD command in our docker file.
+      2. We can consider the CMD command as the one command that will be executed to run the application once a docker container is set up from our docker image
+   6. EXPOSE:
+      1. We can expose a container port once a container is created from the image.
+   7. ENV:
+      1. We can define environment variable using this ENV command.
+5. `docker build -t imageName:tag directory_of_the_Dockerfile`
+   1. Here, -t argument is used to provide a tag to the image.
+   2. Eg: In the DemoApp folder, `docker build -t demoapp .` By default, `latest` tag is given to the image, if the tag is not provided.
+
+### Publishing images on docker hub
+
+1. Signup on hub.docker.com
+2. Create a repository. It either can be private or public
+3. Copy the repo name and that create an image from the docker file with the copied name in your local
+4. Login into the docker in the command prompt using `docker login`
