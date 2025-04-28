@@ -7,13 +7,16 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: qwerty
+    volumes:
+      - C:\Users\anike\Desktop\Projects\docker\dockerCompose\data:/data/db
 
   mongo-express:
     image: mongo-express
     ports:
       - 8081:8081
-    restart: always
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: qwerty
       ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_BASICAUTH_USERNAME: root
+      ME_CONFIG_BASICAUTH_PASSWORD: password

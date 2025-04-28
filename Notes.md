@@ -213,3 +213,76 @@
 2. Create a repository. It either can be private or public
 3. Copy the repo name and that create an image from the docker file with the copied name in your local
 4. Login into the docker in the command prompt using `docker login`
+
+### Docker Volumes
+
+1. By default, the virtual file system, where we store data, will loose data if we stop the container.
+2. For persisting the data, we use docker volumes
+3. Volumes are persistent data stores for containers.
+4. In this, we reserve some extra space on our host system to store the data. This extra space is either managed by host system or docker.
+5. We mount the space on our container or we can say we establish a connection between the container storage and the extra storage. Whatever data is stored in the container will be replicated in the extra space/volume.
+6. Thus, when we stop the container and restart it, the data can be fetched from the extra volume.
+7. We can map multiple containers with the same volume.
+8. `docker run -v absoluteHostpath:absoluteContainerpath image`
+   1. Here, -v argument is used to mount volume to the container.
+   2. absoluteHostpath is the path at which you want to create the volumne in the host machine
+   3. absoluteContainerPath is the path inside the container which data inside the path will be synched with the volume.
+   4. Eg: `docker run -v /Users/abc/Desktop/data:/test/data ubuntu`
+9. Docker volumes in docker compose
+   1. We add volumes section in services in docker compose.
+10. `docker volume ls`
+    1. It will list all the volumes created.
+11. `docker volume create vol_name`
+    1. We can create our custom volume
+    2. These are basically named volumes
+    3. By default, docker creates the named volumes in the following location
+       1. Windows: C:/ProgramData/docker/volumes
+       2. Mac/Linux: /var/lib/docker/volumes
+    4. These are isolated volumes and we can connect them with some container.
+12. `docker volume rm vol_name`
+    1. This is used to remove a volume.
+13. Attaching volumes to containers
+    1. Named volumes:
+       1. `docker run -v vol_name:cont_dir`
+          1. The vol_name either can be an already created volume or if not, then docker will create a volume with this name first and then map it to the container dir.
+          2. Here, docker manages the mount.
+    2. Anonymous volumes:
+       1. `docker run -v cont_dir`
+          1. Here, the docker will automatically create a volume with some name and attach it to the cont_dir.
+          2. Here, docker manages the mount.
+    3. Bind mount
+       1. `docker run -v host_dir:cont_dir`
+          1. Here, we bind some localhost directory with the container dir
+          2. Here, host OS manages the bind mount.
+14. `docker volume prune`
+    1. Whenever we have unused volumes means those are not referenced by any container, then we can delete them using this command.
+    2. This command generally targets the anonymous volumes.
+
+### Docker network imp concepts
+
+1. Whenever we create some container on our host machine, then by default the container has some kind of network enabled.
+2. `docker network ls` will list all the docker networks available in the system.
+3. By default, docker creates 3 networks for us:
+   1. ![Default docker networks](./resources/images/docker-network.png)
+4. All the networks has some drivers attached to them, mainly
+   1. bridge
+   2. host
+   3. null
+5. `docker network create <name>`
+   1. This creates a new network
+   2. Whatever networks we create have a bridge driver attached to it.
+6. Bridge network
+   1. Whenever we create a new container, by default all containers get attached to bridge  
+      ![Bridge](./resources/images/bridge-driver.png)
+   2. After connecting to the bridge, the containers can inteact with each other on the same host.
+   3. By default, all custom network are of bridge until specified externally
+   4. Bridges can be of 2 types:
+      1. Default Bridge
+         1. Containers need port specifications to communicate with each other.
+      2. Custom Bridge
+         1. Containers dont need any additional port to communicate with each other in case of custom bridges
+7. Host network
+   1. In this, the container uses the same network as used by our host machine. Thus the container created does not have any Ip address of its own.
+   2. It uses the ip address and network used by our host machine.
+8. Null network
+   1. It is used to create a completely isolated container means the container is isolated from other containers as well as host machine
